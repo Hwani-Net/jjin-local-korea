@@ -1,175 +1,276 @@
 "use client";
-import { useState, useRef } from "react";
-import { useI18n, Lang } from "@/lib/i18n";
-import { regions, Region } from "@/lib/data";
-import { Loader2, Share2, RefreshCw, CheckSquare, Square } from "lucide-react";
+import { useState } from "react";
+import Image from "next/image";
+import { useI18n } from "@/lib/i18n";
+import { regions } from "@/lib/data";
 
-type Duration = "halfDay" | "oneDay" | "twoDays" | "threeDays";
-type AccomType = "hotel" | "guesthouse" | "hanok" | "motel" | "temple";
-type Style = "food" | "beauty" | "insta" | "culture" | "nature";
+const durations = [
+  { key: "half", label: "Half Day" },
+  { key: "1day", label: "1 Day" },
+  { key: "1n2d", label: "1 Night 2 Days" },
+  { key: "2n3d", label: "2 Nights 3 Days" },
+];
+
+const stayTypes = [
+  { key: "hanok", label: "Hanok Stay", icon: "🏯" },
+  { key: "hotel", label: "Hotel", icon: "🏨" },
+  { key: "guesthouse", label: "Guesthouse", icon: "🏠" },
+  { key: "motel", label: "Motel", icon: "🛏️" },
+  { key: "temple", label: "Temple Stay", icon: "⛩️" },
+];
+
+const travelStyles = [
+  { key: "food", label: "🍜 Local Food & Markets" },
+  { key: "beauty", label: "💄 K-Beauty & Shopping" },
+  { key: "photo", label: "📸 Photo Spots" },
+  { key: "culture", label: "🏛️ Cultural Deep Dive" },
+  { key: "hidden", label: "💎 Hidden Gems" },
+  { key: "nature", label: "🏔️ History & Culture" },
+];
+
+const culturalTips = [
+  { ko: "서버를 부를 때는 '이모!' 또는 '저기요!'라고 하세요", en: "Call servers with '이모!' (aunt) or '저기요!' (excuse me)" },
+  { ko: "지하철에서는 조용히, 에스컬레이터는 우측 통행", en: "Stay quiet on subways & stand right on escalators" },
+  { ko: "감사합니다 (Gamsahamnida) = Thank you", en: "감사합니다 (Gamsahamnida) = Thank you" },
+  { ko: "신발 벗는 곳에 슬리퍼가 있으면 신발을 벗어야 합니다", en: "Remove shoes when you see slippers at the entrance" },
+];
+
+interface ItineraryItem {
+  time: string;
+  nameEn: string;
+  nameKo: string;
+  desc: string;
+  tags?: string[];
+  hasImage?: boolean;
+  image?: string;
+  tipLabel?: string;
+}
+
+interface ItineraryDay {
+  day: string;
+  total?: string;
+  items: ItineraryItem[];
+}
 
 export default function TripPlannerPage() {
-  const { t, lang } = useI18n();
-  const [selectedRegion, setSelectedRegion] = useState<Region>("seoul");
-  const [duration, setDuration] = useState<Duration>("twoDays");
-  const [accom, setAccom] = useState<AccomType>("hanok");
-  const [styles, setStyles] = useState<Style[]>(["food"]);
+  const { lang } = useI18n();
+  const [selectedRegion, setSelectedRegion] = useState("seoul");
+  const [selectedDuration, setSelectedDuration] = useState("1n2d");
+  const [selectedStay, setSelectedStay] = useState("hanok");
+  const [selectedStyles, setSelectedStyles] = useState<string[]>(["food"]);
   const [loading, setLoading] = useState(false);
-  const [itinerary, setItinerary] = useState<string>("");
+  const [itinerary, setItinerary] = useState<ItineraryDay[] | null>(null);
   const [error, setError] = useState("");
-  const resultRef = useRef<HTMLDivElement>(null);
 
-  const toggleStyle = (s: Style) => setStyles((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
-  const regionLabel = regions.find((r) => r.id === selectedRegion)?.label;
-
-  const durationLabels: Record<Duration, string> = { halfDay: t.planner.halfDay, oneDay: t.planner.oneDay, twoDays: t.planner.twoDays, threeDays: t.planner.threeDays };
-  const accomLabels: Record<AccomType, { label: string; icon: string }> = {
-    hotel: { label: t.planner.hotelLabel, icon: "🏨" }, guesthouse: { label: t.planner.guestLabel, icon: "🛫" },
-    hanok: { label: t.planner.hanokLabel, icon: "🏠" }, motel: { label: t.planner.motelLabel, icon: "🏩" }, temple: { label: t.planner.templeLabel, icon: "🛕" },
+  const toggleStyle = (key: string) => {
+    setSelectedStyles((prev: string[]) =>
+      prev.includes(key) ? prev.filter((s: string) => s !== key) : [...prev, key]
+    );
   };
-  const styleOptions: { id: Style; label: string }[] = [
-    { id: "food", label: t.planner.foodStyle }, { id: "beauty", label: t.planner.beautyStyle },
-    { id: "insta", label: t.planner.instaStyle }, { id: "culture", label: t.planner.cultureStyle }, { id: "nature", label: t.planner.natureStyle },
-  ];
-  const cultureTips = [
-    { ko: "식당에서 '이모!' 또는 '저기요!'로 직원을 부르세요", en: "Call servers with '이모!' (aunt) or '저기요!' (excuse me)", emoji: "🍽️" },
-    { ko: "지하철은 조용히, 우측 통행", en: "Stay quiet on subways & stand right on escalators", emoji: "🚇" },
-    { ko: "감사합니다 (Gamsahamnida) = Thank you", en: "감사합니다 (Gamsahamnida) = Thank you", emoji: "🙏" },
-    { ko: "신발 벗어야 하는 곳엔 꼭 벗기", en: "Remove shoes when you see slippers at the entrance", emoji: "👟" },
-  ];
 
-  const handleGenerate = async () => {
-    if (styles.length === 0) { setError(lang === "ko" ? "여행 스타일을 하나 이상 선택해주세요." : "Please select at least one travel style."); return; }
-    setError(""); setLoading(true); setItinerary("");
-    const prompt = `You are a Korean local travel expert. Create a detailed itinerary for ${regionLabel?.en}, Korea.
-- Duration: ${durationLabels[duration]}
-- Accommodation: ${accomLabels[accom].label}
-- Styles: ${styles.map((s) => styleOptions.find((o) => o.id === s)?.label).join(", ")}
-Rules: Recommend REAL local spots Koreans love. Show Korean name + English. Include prices in KRW. Add transport info. Mark hidden gems with 🔥. Format with time blocks.`;
+  const generate = async () => {
+    setLoading(true);
+    setError("");
+    setItinerary(null);
     try {
-      const res = await fetch("/api/generate-trip", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt }) });
+      const res = await fetch("/api/generate-trip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          region: selectedRegion,
+          duration: selectedDuration,
+          stay: selectedStay,
+          styles: selectedStyles,
+          lang,
+        }),
+      });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed");
-      setItinerary(data.itinerary);
-      setTimeout(() => resultRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      setError(msg.includes("API key") ? t.planner.noApiKey : `Error: ${msg}`);
-    } finally { setLoading(false); }
+      if (data.itinerary) setItinerary(data.itinerary);
+      else setError(data.error || "Failed to generate itinerary.");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleShare = async () => {
-    const text = `🇰🇷 My ${regionLabel?.en} itinerary from 싰 로컈 코리아!\n\n${itinerary.slice(0, 200)}...`;
-    if (navigator.share) await navigator.share({ title: "싰 로컈 코리아 여행 코스", text });
-    else { await navigator.clipboard.writeText(text); alert(lang === "ko" ? "클립보드에 복사되었습니다!" : "Copied to clipboard!"); }
-  };
+  const regionData = regions.find((r) => r.id === selectedRegion);
 
   return (
-    <div style={{ paddingTop: 88 }}>
-      <div style={{ maxWidth: 1300, margin: "0 auto", padding: "40px 24px 80px", display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32, alignItems: "start" }}>
-        <div className="glass-card" style={{ padding: "36px" }}>
-          <h1 style={{ fontSize: "clamp(1.4rem, 3vw, 1.9rem)", fontWeight: 900, marginBottom: 8, fontFamily: lang === "ko" ? "'Noto Sans KR', sans-serif" : "inherit" }}>{t.planner.title}</h1>
-          <p style={{ color: "var(--text-secondary)", marginBottom: 36 }}>{t.planner.subtitle}</p>
-
-          <div style={{ marginBottom: 32 }}>
-            <h3 style={{ fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}><span className="gradient-text">01</span> {t.planner.step1}</h3>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              {regions.map((r) => (
-                <button key={r.id} onClick={() => setSelectedRegion(r.id)} style={{ padding: "12px 14px", borderRadius: 12, border: `1.5px solid ${selectedRegion === r.id ? "var(--coral)" : "var(--border)"}`, background: selectedRegion === r.id ? "rgba(255,95,82,0.1)" : "var(--bg-card)", color: selectedRegion === r.id ? "var(--coral)" : "var(--text-secondary)", cursor: "pointer", textAlign: "left", fontFamily: "'Noto Sans KR', sans-serif", fontWeight: selectedRegion === r.id ? 700 : 400, transition: "all 0.2s", display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ fontSize: "1.2rem" }}>{r.emoji}</span>
-                  <div>
-                    <div style={{ fontSize: "0.85rem", fontWeight: 600 }}>{r.label[lang as Lang] || r.label.en}</div>
-                    <div style={{ fontSize: "0.7rem", color: "var(--text-muted)", lineHeight: 1.3 }}>{r.desc[lang === "ko" ? "ko" : "en"].slice(0, 28)}...</div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 32 }}>
-            <h3 style={{ fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}><span className="gradient-text">02</span> {t.planner.step2}</h3>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {(["halfDay", "oneDay", "twoDays", "threeDays"] as Duration[]).map((d) => (
-                <button key={d} className={`pill ${duration === d ? "active" : ""}`} onClick={() => setDuration(d)}>{durationLabels[d]}</button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 32 }}>
-            <h3 style={{ fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}><span className="gradient-text">03</span> {t.planner.step3}</h3>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-              {(["hotel", "guesthouse", "hanok", "motel", "temple"] as AccomType[]).map((a) => (
-                <button key={a} className={`pill ${accom === a ? "active" : ""}`} onClick={() => setAccom(a)}>{accomLabels[a].icon} {accomLabels[a].label}</button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 36 }}>
-            <h3 style={{ fontWeight: 700, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}><span className="gradient-text">04</span> {t.planner.step4}</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {styleOptions.map((s) => (
-                <button key={s.id} onClick={() => toggleStyle(s.id)} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12, border: `1.5px solid ${styles.includes(s.id) ? "var(--coral)" : "var(--border)"}`, background: styles.includes(s.id) ? "rgba(255,95,82,0.08)" : "var(--bg-card)", color: styles.includes(s.id) ? "var(--coral)" : "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit", transition: "all 0.2s" }}>
-                  {styles.includes(s.id) ? <CheckSquare size={18} style={{ flexShrink: 0 }} /> : <Square size={18} style={{ flexShrink: 0 }} />}
-                  <span>{s.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {error && <div style={{ marginBottom: 20, padding: "12px 16px", background: "rgba(255,59,48,0.1)", border: "1px solid rgba(255,59,48,0.3)", borderRadius: 10, color: "#ff3b30", fontSize: "0.85rem" }}>{error}</div>}
-
-          <button className="btn-gradient" onClick={handleGenerate} disabled={loading} style={{ width: "100%", justifyContent: "center", fontSize: "1.05rem", padding: "16px" }}>
-            {loading ? <><Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} /> {t.planner.generating}</> : t.planner.generateBtn}
-          </button>
-          <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
-        </div>
-
-        <div ref={resultRef}>
-          <div className="glass-card" style={{ padding: 28, marginBottom: 24 }}>
-            <h3 style={{ fontWeight: 800, marginBottom: 20, fontSize: "1.1rem" }}>{t.planner.tipTitle}</h3>
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              {cultureTips.map((tip, i) => (
-                <div key={i} className="glass-card" style={{ padding: "12px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
-                  <span style={{ fontSize: "1.2rem", flexShrink: 0 }}>{tip.emoji}</span>
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", lineHeight: 1.5 }}>{lang === "ko" ? tip.ko : tip.en}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {!itinerary && !loading && (
-            <div className="glass-card" style={{ padding: 40, textAlign: "center", background: "linear-gradient(135deg, rgba(255,95,82,0.05), rgba(255,179,71,0.05))", borderColor: "rgba(255,95,82,0.15)" }}>
-              <div style={{ fontSize: "4rem", marginBottom: 16 }}>✈️</div>
-              <h3 style={{ fontWeight: 700, marginBottom: 8, color: "var(--text-secondary)" }}>{lang === "ko" ? "여행 코스가 여기에 표시됩니다" : "Your itinerary will appear here"}</h3>
-              <p style={{ color: "var(--text-muted)" }}>{lang === "ko" ? "왼쪽에서 옵션을 선택하고 생성 버튼을 눌러주세요" : "Select your options on the left and click generate"}</p>
-            </div>
-          )}
-
-          {loading && (
-            <div className="glass-card" style={{ padding: 40, textAlign: "center" }}>
-              <div style={{ fontSize: "3rem", marginBottom: 16 }}>🇰🇷</div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, color: "var(--coral)" }}>
-                <Loader2 size={24} style={{ animation: "spin 1s linear infinite" }} />
-                <span style={{ fontWeight: 600, fontSize: "1.1rem" }}>{t.planner.generating}</span>
-              </div>
-            </div>
-          )}
-
-          {itinerary && (
-            <div className="glass-card" style={{ padding: 28 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
-                <h2 style={{ fontWeight: 900, fontSize: "1.3rem" }}>{t.planner.resultTitle}</h2>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button className="btn-ghost" onClick={handleShare} style={{ padding: "8px 14px", gap: 6 }}><Share2 size={14} /> {t.planner.shareBtn}</button>
-                  <button className="btn-ghost" onClick={handleGenerate} style={{ padding: "8px 14px", gap: 6 }}><RefreshCw size={14} /> {t.planner.regenBtn}</button>
-                </div>
-              </div>
-              <div style={{ lineHeight: 1.8, color: "var(--text-secondary)", fontSize: "0.92rem", whiteSpace: "pre-wrap" }}>{itinerary}</div>
-            </div>
-          )}
+    <div style={{ paddingTop: 60, minHeight: "100vh", background: "var(--bg-primary)" }}>
+      {/* Page Header */}
+      <div style={{ background: "linear-gradient(135deg, #1c1917 0%, #292524 100%)", padding: "40px 48px", borderBottom: "1px solid rgba(255,255,255,0.05)", position: "relative", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, backgroundImage: "url('https://images.unsplash.com/photo-1538485399081-7191377e8241?w=1200&q=80')", backgroundSize: "cover", backgroundPosition: "center", opacity: 0.12 }} />
+        <div style={{ position: "relative" }}>
+          <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--coral)", marginBottom: 8, letterSpacing: 0.5 }}>✨ AI-POWERED</div>
+          <h1 style={{ fontSize: "clamp(1.5rem, 3vw, 2.2rem)", fontWeight: 900, color: "white", marginBottom: 8 }}>
+            {lang === "ko" ? "나만의 한국 어드벤처 만들기" : "Build Your Korean Adventure"}
+          </h1>
+          <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.9rem" }}>
+            {lang === "ko" ? "여행 스타일을 알려주시면 AI가 완벽한 '찐' 현지 경험을 만들어 드립니다" : "Tell us your preferences and let AI craft your perfect 'Jjin' (Real) local experience"}
+          </p>
         </div>
       </div>
-      <style>{`@media (max-width: 900px) { div[style*="grid-template-columns: 1fr 1fr"] { grid-template-columns: 1fr !important; } }`}</style>
+
+      {/* Main Layout */}
+      <div style={{ padding: "32px 48px" }}>
+        <div className="planner-layout">
+          {/* LEFT: Form */}
+          <div className="planner-form">
+            {/* Region */}
+            <div className="form-group">
+              <div className="form-label">
+                <span className="form-label-num">1</span>
+                {lang === "ko" ? "어디로 가실 건가요?" : "Where do you want to go?"}
+              </div>
+              <div className="region-grid">
+                {regions.slice(0, 6).map((r) => (
+                  <button key={r.id} className={`region-option ${selectedRegion === r.id ? "selected" : ""}`} onClick={() => setSelectedRegion(r.id)} style={{ background: "none", padding: 0, border: "2px solid transparent" }}>
+                    <Image src={r.image || "https://images.unsplash.com/photo-1601042879364-f3947d3f9c16?w=400&q=70"} alt={r.name} fill sizes="150px" style={{ objectFit: "cover", opacity: selectedRegion === r.id ? 0.9 : 0.65 }} />
+                    <div className="region-option-label">
+                      <strong>{lang === "ko" ? r.nameKo : r.name}</strong>
+                      <span>{r.tagline || ""}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Duration */}
+            <div className="form-group">
+              <div className="form-label"><span className="form-label-num">2</span>{lang === "ko" ? "여행 기간은?" : "How long is your trip?"}</div>
+              <div className="duration-chips">
+                {durations.map((d) => (<button key={d.key} className={`chip ${selectedDuration === d.key ? "selected" : ""}`} onClick={() => setSelectedDuration(d.key)}>{d.label}</button>))}
+              </div>
+            </div>
+
+            {/* Stay */}
+            <div className="form-group">
+              <div className="form-label"><span className="form-label-num">3</span>{lang === "ko" ? "숙박 형태는?" : "Preferred Stay?"}</div>
+              <div className="stay-chips">
+                {stayTypes.map((s) => (<button key={s.key} className={`chip ${selectedStay === s.key ? "selected" : ""}`} onClick={() => setSelectedStay(s.key)}>{s.icon} {s.label}</button>))}
+              </div>
+            </div>
+
+            {/* Travel Style */}
+            <div className="form-group">
+              <div className="form-label"><span className="form-label-num">4</span>{lang === "ko" ? "여행 스타일 & 관심사" : "Travel Style & Interests"}</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {travelStyles.map((s) => (
+                  <button key={s.key} className={`style-checkbox ${selectedStyles.includes(s.key) ? "checked" : ""}`} onClick={() => toggleStyle(s.key)}>
+                    <span style={{ fontSize: "1rem" }}>{selectedStyles.includes(s.key) ? "☑" : "☐"}</span>
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button className="btn btn-primary" onClick={generate} disabled={loading} style={{ width: "100%", justifyContent: "center", padding: "14px", fontSize: "0.95rem" }}>
+              {loading ? "⏳ Generating..." : "✨ Generate My Korean Trip"}
+            </button>
+          </div>
+
+          {/* RIGHT: Cultural Tips + Result */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+            <div className="planner-result" style={{ minHeight: "auto" }}>
+              <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "var(--text-muted)", letterSpacing: 0.5, marginBottom: 14 }}>🇰🇷 CULTURAL TIPS</div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                {culturalTips.map((tip, i) => (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+                    <div style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--coral-bg)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", flexShrink: 0 }}>
+                      {["👋", "🚇", "🙏", "👟"][i]}
+                    </div>
+                    <p style={{ fontSize: "0.835rem", color: "var(--text-secondary)", lineHeight: 1.5, fontFamily: lang === "ko" ? "'Noto Sans KR', sans-serif" : "inherit" }}>
+                      {lang === "ko" ? tip.ko : tip.en}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="planner-result">
+              {error && <div style={{ color: "#ef4444", fontSize: "0.85rem", padding: "12px 0" }}>⚠️ {error}</div>}
+
+              {!itinerary && !loading && !error && (
+                <div className="empty-state">
+                  <div className="empty-icon">✈️</div>
+                  <div className="empty-title">{lang === "ko" ? "일정이 여기에 나타납니다" : "Your itinerary will appear here"}</div>
+                  <div className="empty-desc">{lang === "ko" ? "왼쪽에서 옵션 선택 후 생성 버튼을 누르세요" : "Select your options on the left and click generate"}</div>
+                </div>
+              )}
+
+              {loading && (
+                <div className="empty-state">
+                  <div style={{ fontSize: "2.5rem", marginBottom: 16, animation: "spin 1s linear infinite" }}>⚙️</div>
+                  <div className="empty-title">{lang === "ko" ? "AI가 일정을 생성 중..." : "AI is crafting your itinerary..."}</div>
+                  <div className="empty-desc">약 10-20초 소요됩니다</div>
+                </div>
+              )}
+
+              {itinerary && (
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20, paddingBottom: 16, borderBottom: "1px solid var(--border)" }}>
+                    <div>
+                      <div style={{ fontSize: "0.72rem", color: "var(--coral)", fontWeight: 700, letterSpacing: 0.5 }}>✨ AI-GENERATED</div>
+                      <h3 style={{ fontSize: "1.1rem", fontWeight: 800, color: "var(--text-primary)", marginTop: 4 }}>
+                        {lang === "ko" ? `나의 ${regionData?.nameKo || selectedRegion} 어드벤처` : `Your ${regionData?.name || selectedRegion} Adventure`}
+                      </h3>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      {["📋", "🔗", "📤"].map((icon, i) => (
+                        <button key={i} style={{ background: "var(--coral-bg)", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", fontSize: "1rem" }}>{icon}</button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {itinerary.map((day: ItineraryDay, di: number) => (
+                    <div key={di} className="itinerary-day">
+                      <div className="day-header">
+                        <span style={{ background: "var(--coral)", color: "white", fontSize: "0.68rem", padding: "2px 8px", borderRadius: 4, fontWeight: 800 }}>{day.day}</span>
+                        {day.total && <span style={{ color: "var(--text-muted)", fontSize: "0.75rem" }}>Today&apos;s Total: {day.total}</span>}
+                      </div>
+                      {day.items.map((item: ItineraryItem, ii: number) => (
+                        <div key={ii} className="itinerary-item">
+                          <div className="item-time">{item.time}</div>
+                          <div className="item-dot" />
+                          <div className="item-body">
+                            <div className="item-name">{item.nameEn}</div>
+                            {item.nameKo && <div className="item-name-ko">{item.nameKo}</div>}
+                            {item.hasImage && item.image && (
+                              <div style={{ position: "relative", height: 100, borderRadius: 10, overflow: "hidden", margin: "8px 0" }}>
+                                <Image src={item.image} alt={item.nameEn} fill sizes="300px" style={{ objectFit: "cover" }} />
+                              </div>
+                            )}
+                            <div className="item-desc">{item.desc}</div>
+                            {item.tags && (
+                              <div className="spot-card-tags" style={{ marginTop: 6 }}>
+                                {item.tags.map((tag: string, ti: number) => <span key={ti} className="tag">{tag}</span>)}
+                              </div>
+                            )}
+                          </div>
+                          {item.tipLabel && (
+                            <span style={{ fontSize: "0.65rem", fontWeight: 700, padding: "2px 7px", borderRadius: 4, background: item.tipLabel === "MUST TRY" ? "rgba(249,115,22,0.15)" : "rgba(99,102,241,0.15)", color: item.tipLabel === "MUST TRY" ? "var(--coral)" : "#6366f1", alignSelf: "flex-start", flexShrink: 0, whiteSpace: "nowrap" }}>
+                              {item.tipLabel}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+
+                  <div className="cultural-tip">
+                    <strong style={{ color: "var(--coral)", fontSize: "0.78rem", letterSpacing: 0.5 }}>💡 CULTURAL TIP</strong>
+                    <p style={{ marginTop: 4, fontSize: "0.82rem", color: "var(--text-secondary)" }}>
+                      {lang === "ko" ? "물건을 주고받을 때는 두 손을 사용하는 것이 예의입니다. '감사합니다'라고 말하는 것도 잊지 마세요!" : "When paying or receiving something, use two hands as a sign of respect. And say \"Gamsahamnida\" (감사합니다)!"}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } @media (max-width: 900px) { .planner-layout { grid-template-columns: 1fr !important; } div[style*="padding: 32px 48px"] { padding: 24px 16px !important; } }`}</style>
     </div>
   );
 }
