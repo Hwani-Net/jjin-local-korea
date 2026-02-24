@@ -9,8 +9,11 @@ export interface Spot {
   category: Category;
   koreanRating: number;
   touristRating: number;
+  localRating?: number;
   reviewCount: number;
   address: { ko: string; en: string };
+  location?: { ko: string; en: string };
+  distance?: string;
   tags: string[];
   description: { ko: string; en: string };
   tip: { ko: string; en: string };
@@ -148,6 +151,22 @@ export const spots: Spot[] = [
     isHiddenGem: false,
     price: "₩5,000~8,000",
   },
+  {
+    id: "suseongmot-cafe",
+    name: { ko: "수성못 호수 카페", en: "Suseongmot Lake Cafe", ja: "寿城池湖カフェ", zh: "寿城湖咖啡" },
+    region: "seoul",
+    category: "sightseeing",
+    koreanRating: 4.7,
+    touristRating: 3.8,
+    reviewCount: 5600,
+    address: { ko: "대구 수성구 수성못", en: "Suseongmot, Suseong-gu, Daegu" },
+    tags: ["#수성못", "#대구", "#호수카페", "#matcha"],
+    description: { ko: "대구 현지인들의 힐링 스팟. 호수 뷰와 말차 디저트가 조화롭다.", en: "A serene escape in Daegu featuring stunning lake views and artisanal matcha desserts." },
+    tip: { ko: "저녁 일몰 시간이 가장 아름다움. 오리배 체험도 필수!", en: "Sunset is the most beautiful time. Try the pedal boat ride!" },
+    image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=800&q=80",
+    isHiddenGem: true,
+    price: "₩6,000~15,000",
+  },
 ];
 
 // ─── Culture Data ──────────────────────────────────────────────────────────────
@@ -251,11 +270,62 @@ export const beautyGuides = [
 ];
 
 // ─── Regions ───────────────────────────────────────────────────────────────────
-export const regions: { id: Region; label: { ko: string; en: string; ja: string; zh: string }; emoji: string; desc: { ko: string; en: string } }[] = [
-  { id: "seoul", label: { ko: "서울", en: "Seoul", ja: "ソウル", zh: "首尔" }, emoji: "🏙️", desc: { ko: "한국의 심장, 모든 것이 있는 도시", en: "Korea's capital — everything in one city" } },
-  { id: "busan", label: { ko: "부산", en: "Busan", ja: "釜山", zh: "釜山" }, emoji: "🌊", desc: { ko: "바다와 산이 공존하는 매력적인 항구도시", en: "A stunning port city where mountains meet the sea" } },
-  { id: "jeju", label: { ko: "제주", en: "Jeju", ja: "済州", zh: "济州" }, emoji: "🌺", desc: { ko: "한국의 하와이, 자연과 해산물의 보고", en: "Korea's Hawaii — volcanic nature and fresh seafood" } },
-  { id: "gyeongju", label: { ko: "경주", en: "Gyeongju", ja: "慶州", zh: "庆州" }, emoji: "🛕", desc: { ko: "천년 신라의 역사가 살아있는 야외박물관", en: "An open-air museum of 1,000-year Silla dynasty history" } },
-  { id: "gangneung", label: { ko: "강릉", en: "Gangneung", ja: "江陵", zh: "江陵" }, emoji: "☕", desc: { ko: "한국 커피의 수도, 동해 바다 뷰 카페들", en: "Korea's coffee capital with East Sea café views" } },
-  { id: "jeonju", label: { ko: "전주", en: "Jeonju", ja: "全州", zh: "全州" }, emoji: "🍱", desc: { ko: "한국 음식 문화의 정수, 비빔밥 원조 도시", en: "The cradle of Korean cuisine and original bibimbap city" } },
+export const regions: {
+  id: Region;
+  name: string;
+  nameKo: string;
+  label: { ko: string; en: string; ja: string; zh: string };
+  emoji: string;
+  desc: { ko: string; en: string };
+  tagline?: string;
+  image?: string;
+}[] = [
+  {
+    id: "seoul", name: "Seoul", nameKo: "서울",
+    label: { ko: "서울", en: "Seoul", ja: "ソウル", zh: "首尔" },
+    emoji: "🏙️",
+    desc: { ko: "한국의 심장, 모든 것이 있는 도시", en: "Korea's capital — everything in one city" },
+    tagline: "Korea's Capital",
+    image: "https://images.unsplash.com/photo-1601042879364-f3947d3f9c16?w=400&q=70",
+  },
+  {
+    id: "busan", name: "Busan", nameKo: "부산",
+    label: { ko: "부산", en: "Busan", ja: "釜山", zh: "釜山" },
+    emoji: "🌊",
+    desc: { ko: "바다와 산이 공존하는 매력적인 항구도시", en: "A stunning port city where mountains meet the sea" },
+    tagline: "Coastal Vibes",
+    image: "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&q=70",
+  },
+  {
+    id: "jeju", name: "Jeju", nameKo: "제주",
+    label: { ko: "제주", en: "Jeju", ja: "済州", zh: "济州" },
+    emoji: "🌺",
+    desc: { ko: "한국의 하와이, 자연과 해산물의 보고", en: "Korea's Hawaii — volcanic nature and fresh seafood" },
+    tagline: "Island Paradise",
+    image: "https://images.unsplash.com/photo-1569949381669-ecf31ae8e613?w=400&q=70",
+  },
+  {
+    id: "gyeongju", name: "Gyeongju", nameKo: "경주",
+    label: { ko: "경주", en: "Gyeongju", ja: "慶州", zh: "庆州" },
+    emoji: "🛕",
+    desc: { ko: "천년 신라의 역사가 살아있는 야외박물관", en: "An open-air museum of 1,000-year Silla dynasty history" },
+    tagline: "Ancient History",
+    image: "https://images.unsplash.com/photo-1548115184-bc6544d06a58?w=400&q=70",
+  },
+  {
+    id: "gangneung", name: "Gangneung", nameKo: "강릉",
+    label: { ko: "강릉", en: "Gangneung", ja: "江陵", zh: "江陵" },
+    emoji: "☕",
+    desc: { ko: "한국 커피의 수도, 동해 바다 뷰 카페들", en: "Korea's coffee capital with East Sea café views" },
+    tagline: "Coffee & Sea",
+    image: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&q=70",
+  },
+  {
+    id: "jeonju", name: "Jeonju", nameKo: "전주",
+    label: { ko: "전주", en: "Jeonju", ja: "全州", zh: "全州" },
+    emoji: "🍱",
+    desc: { ko: "한국 음식 문화의 정수, 비빔밥 원조 도시", en: "The cradle of Korean cuisine and original bibimbap city" },
+    tagline: "Food Paradise",
+    image: "https://images.unsplash.com/photo-1583531172078-5ca7f4aca819?w=400&q=70",
+  },
 ];
