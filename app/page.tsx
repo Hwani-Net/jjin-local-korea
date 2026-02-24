@@ -1,126 +1,117 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { useI18n, Lang } from "@/lib/i18n";
-import { spots, regions, Region, Category } from "@/lib/data";
-import SpotCard from "@/components/SpotCard";
-import { ChevronRight, Utensils, Sparkles, Camera, BedDouble, BookOpen } from "lucide-react";
+import Image from "next/image";
+import { spots, regions } from "@/lib/data";
+import { useI18n } from "@/lib/i18n";
+import type { Spot } from "@/lib/data";
 
-const categories: { id: Category | "all"; icon: React.ReactNode; labelKey: string }[] = [
-  { id: "all", icon: <Sparkles size={16} />, labelKey: "all" },
-  { id: "food", icon: <Utensils size={16} />, labelKey: "food" },
-  { id: "beauty", icon: <span>💄</span>, labelKey: "beauty" },
-  { id: "sightseeing", icon: <Camera size={16} />, labelKey: "sight" },
-  { id: "accommodation", icon: <BedDouble size={16} />, labelKey: "accom" },
-  { id: "culture", icon: <BookOpen size={16} />, labelKey: "culture" },
-];
-
-const catLabels: Record<string, Record<Lang, string>> = {
-  all: { en: "All", ko: "전체", ja: "全て", zh: "全部" },
-  food: { en: "🍜 Local Food", ko: "🍜 맛집", ja: "🍜 グルメ", zh: "🍜 美食" },
-  beauty: { en: "💄 K-Beauty", ko: "💄 K-뷰티", ja: "💄 K-ビューティー", zh: "💄 K-美妆" },
-  sight: { en: "🏔️ Sightseeing", ko: "🏔️ 관광", ja: "🏔️ 観光", zh: "🏔️ 观光" },
-  accom: { en: "🏨 Stay", ko: "🏨 숙박", ja: "🏨 宿泊", zh: "🏨 住宿" },
-  culture: { en: "🎭 Culture", ko: "🎭 문화", ja: "🎭 文化", zh: "🎭 文化" },
-};
-
-const stats = [
-  { value: "50,000+", label: { en: "Local Reviews", ko: "현지인 리뷰", ja: "地元レビュー", zh: "本地评价" } },
-  { value: "200+", label: { en: "Hidden Gems", ko: "숨은 명소", ja: "穴場スポット", zh: "隐藏宝藏" } },
-  { value: "6", label: { en: "Major Regions", ko: "주요 지역", ja: "主要地域", zh: "主要地区" } },
-  { value: "4", label: { en: "Languages", ko: "지원 언어", ja: "対応言語", zh: "支持语言" } },
+const categories = [
+  { key: "all", label: "All", icon: "✨" },
+  { key: "food", label: "Local Food", icon: "🍜" },
+  { key: "beauty", label: "K-Beauty", icon: "💄" },
+  { key: "shopping", label: "Shopping", icon: "🛍️" },
+  { key: "cafe", label: "Cafe Hopping", icon: "☕" },
+  { key: "nature", label: "Nature", icon: "🏔️" },
 ];
 
 export default function HomePage() {
   const { t, lang } = useI18n();
-  const [region, setRegion] = useState<Region | "all">("all");
-  const [category, setCategory] = useState<Category | "all">("all");
+  const [activeRegion, setActiveRegion] = useState("all");
+  const [activeCategory, setActiveCategory] = useState("all");
 
-  const filtered = spots.filter(
-    (s) =>
-      (region === "all" || s.region === region) &&
-      (category === "all" || s.category === category)
-  );
+  const filtered = spots.filter((s: Spot) => {
+    const regionMatch = activeRegion === "all" || s.region === activeRegion;
+    const catMatch = activeCategory === "all" || s.category === activeCategory;
+    return regionMatch && catMatch;
+  }).slice(0, 9);
 
   return (
-    <>
-      <section style={{ minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", padding: "120px 24px 80px", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", top: "10%", left: "5%", width: 600, height: 600, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,95,82,0.15) 0%, transparent 70%)", pointerEvents: "none", filter: "blur(40px)" }} />
-        <div style={{ position: "absolute", bottom: "5%", right: "5%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,179,71,0.12) 0%, transparent 70%)", pointerEvents: "none", filter: "blur(40px)" }} />
-
-        <div className="animate-fade-up" style={{ marginBottom: 24, animationDelay: "0s" }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, padding: "8px 20px", borderRadius: 50, border: "1px solid var(--border)", background: "var(--bg-card)", backdropFilter: "blur(12px)", marginBottom: 32 }}>
-            <span style={{ fontSize: "1.4rem" }}>🇰🇷</span>
-            <span style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 900, fontSize: "1rem", background: "var(--gradient)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>싰 로컈 코리아</span>
+    <div style={{ paddingTop: 60 }}>
+      {/* HERO */}
+      <section className="hero">
+        <Image src="https://images.unsplash.com/photo-1601042879364-f3947d3f9c16?w=1400&q=80" alt="Korean local market" fill sizes="100vw" style={{ objectFit: "cover", opacity: 0.55 }} priority />
+        <div className="hero-overlay" />
+        <div className="hero-content">
+          <div style={{ marginBottom: 12 }}>
+            <span style={{ background: "rgba(249,115,22,0.25)", border: "1px solid rgba(249,115,22,0.4)", color: "#fed7aa", fontSize: "0.78rem", fontWeight: 700, padding: "4px 12px", borderRadius: 50, letterSpacing: 0.5 }}>🇰🇷 찐 로컬 코리아</span>
+          </div>
+          <h1 className="hero-title">Discover Real Korea — <span style={{ color: "var(--coral)" }}>Where Koreans Actually Go</span></h1>
+          <p className="hero-subtitle">Experience authentic local culture beyond the tourist traps.</p>
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <Link href="/trip-planner" className="btn btn-primary">✈️ Plan My Trip →</Link>
+            <Link href="/spots" className="btn btn-outline">🔍 {lang === "ko" ? "스팟 탐색" : "Explore Spots"}</Link>
           </div>
         </div>
+        <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, background: "rgba(0,0,0,0.5)", backdropFilter: "blur(8px)", padding: "20px 48px", display: "flex", gap: 48 }}>
+          {[{ num: "50,000+", label: lang === "ko" ? "현지인 리뷰" : "Local Reviews" }, { num: "100%", label: lang === "ko" ? "현지인 인증" : "Authentic" }, { num: "24/7", label: lang === "ko" ? "여행 지원" : "Travel Support" }].map(s => (
+            <div key={s.label}><div className="stat-number" style={{ fontSize: "1.4rem" }}>{s.num}</div><div className="stat-label" style={{ color: "rgba(255,255,255,0.6)" }}>{s.label}</div></div>
+          ))}
+        </div>
+      </section>
 
-        <h1 className="animate-fade-up" style={{ fontSize: "clamp(2.5rem, 7vw, 5rem)", fontWeight: 900, lineHeight: 1.1, marginBottom: 20, animationDelay: "0.1s", fontFamily: lang === "ko" ? "'Noto Sans KR', sans-serif" : "inherit" }}>
-          <span className="gradient-text">{t.hero.title}</span>
-        </h1>
+      {/* REGION PILLS */}
+      <div style={{ background: "var(--bg-secondary)", borderBottom: "1px solid var(--border)", padding: "16px 48px", overflowX: "auto" }}>
+        <div className="pill-group" style={{ flexWrap: "nowrap" }}>
+          <button className={`pill ${activeRegion === "all" ? "active" : ""}`} onClick={() => setActiveRegion("all")}>🗺️ {lang === "ko" ? "전체 지역" : "All Regions"}</button>
+          {regions.map((r) => (
+            <button key={r.id} className={`pill ${activeRegion === r.id ? "active" : ""}`} onClick={() => setActiveRegion(r.id)}>{r.emoji} {lang === "ko" ? r.nameKo : r.name}</button>
+          ))}
+        </div>
+      </div>
 
-        <p className="animate-fade-up" style={{ fontSize: "clamp(1.1rem, 2.5vw, 1.4rem)", color: "var(--text-secondary)", maxWidth: 600, marginBottom: 40, animationDelay: "0.2s", fontFamily: lang === "ko" ? "'Noto Sans KR', sans-serif" : "inherit" }}>
-          {t.hero.subtitle}
-        </p>
-
-        <div className="animate-fade-up" style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center", animationDelay: "0.3s" }}>
-          <Link href="/trip-planner" className="btn-gradient" style={{ fontSize: "1.05rem", padding: "16px 36px" }}>✈️ {t.hero.cta}</Link>
-          <Link href="/spots" className="btn-ghost" style={{ fontSize: "1.05rem", padding: "16px 36px" }}>🔍 {lang === "ko" ? "스팟 탐색" : lang === "ja" ? "スポット探索" : lang === "zh" ? "探索景点" : "Explore Spots"}</Link>
+      {/* MAIN */}
+      <div className="section">
+        <div className="category-tabs">
+          {categories.map((cat) => (
+            <button key={cat.key} className={`cat-tab ${activeCategory === cat.key ? "active" : ""}`} onClick={() => setActiveCategory(cat.key)}>
+              <span className="cat-tab-icon">{cat.icon}</span>{cat.label}
+            </button>
+          ))}
+        </div>
+        <div className="section-header">
+          <h2 className="section-title">🔥 {lang === "ko" ? "현지인 추천 TOP" : "Korean Locals' Top Picks"}</h2>
+          <Link href="/spots" className="section-view-all">{lang === "ko" ? "전체 보기" : "View all"} →</Link>
+        </div>
+        <div className="cards-grid">
+          {filtered.map((spot: Spot) => (
+            <Link key={spot.id} href={`/spots/${spot.id}`} style={{ textDecoration: "none" }}>
+              <div className="spot-card">
+                <div className="spot-card-image">
+                  <Image src={spot.image} alt={spot.name.en} fill sizes="380px" style={{ objectFit: "cover" }} />
+                  <span className={`spot-card-badge ${spot.isHiddenGem ? "hidden-gem" : ""}`}>{spot.isHiddenGem ? "💎 Hidden Gem" : "🔥 Local Pick"}</span>
+                  <button className="spot-card-save">♡</button>
+                </div>
+                <div className="spot-card-body">
+                  <div className="spot-card-title">{lang === "ko" ? spot.name.ko : spot.name.en}</div>
+                  <div className="spot-card-desc">{lang === "ko" ? spot.description.ko : spot.description.en}</div>
+                  <div className="spot-card-meta">
+                    <div className="spot-card-location">📍 {lang === "ko" ? spot.address.ko : spot.address.en}</div>
+                    <div className="spot-card-rating">
+                      <div className="rating-local">⭐ {spot.koreanRating}</div>
+                      <div className="rating-tourist" style={{ fontSize: "0.72rem" }}>/ {spot.touristRating} <span style={{ fontSize: "0.65rem" }}>tourist</span></div>
+                    </div>
+                  </div>
+                  {spot.tags && <div className="spot-card-tags">{spot.tags.slice(0, 3).map((tag: string, i: number) => <span key={i} className="tag">{tag}</span>)}</div>}
+                </div>
+              </div>
+            </Link>
+          ))}
         </div>
 
-        <div className="animate-fade-up" style={{ display: "flex", gap: 32, marginTop: 64, flexWrap: "wrap", justifyContent: "center", animationDelay: "0.4s" }}>
-          {stats.map((s) => (
-            <div key={s.value} style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "1.8rem", fontWeight: 900, background: "var(--gradient)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{s.value}</div>
-              <div style={{ color: "var(--text-muted)", fontSize: "0.85rem", marginTop: 2, fontFamily: lang === "ko" ? "'Noto Sans KR', sans-serif" : "inherit" }}>{s.label[lang as Lang] || s.label.en}</div>
+        {/* AI CTA */}
+        <div style={{ marginTop: 64, borderRadius: 20, overflow: "hidden", position: "relative", minHeight: 200, display: "flex", alignItems: "center", background: "linear-gradient(135deg, #1c1917 0%, #292524 100%)" }}>
+          <div style={{ position: "absolute", inset: 0, backgroundImage: "url('https://images.unsplash.com/photo-1538485399081-7191377e8241?w=1200&q=80')", backgroundSize: "cover", backgroundPosition: "center", opacity: 0.2 }} />
+          <div style={{ position: "relative", padding: "40px 48px", display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", flexWrap: "wrap", gap: 24 }}>
+            <div>
+              <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "var(--coral)", marginBottom: 8, letterSpacing: 0.5 }}>✨ AI-POWERED</div>
+              <h3 style={{ fontSize: "1.5rem", fontWeight: 900, color: "white", marginBottom: 8 }}>{lang === "ko" ? "나만의 한국 여행 계획" : "Build Your Korean Adventure"}</h3>
+              <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "0.9rem" }}>{lang === "ko" ? "여행 스타일 입력 → Gemini AI가 현지인 추천 일정 생성" : "Tell us your style → AI crafts your authentic local itinerary"}</p>
             </div>
-          ))}
-        </div>
-      </section>
-
-      <section style={{ background: "var(--bg-secondary)", padding: "60px 24px" }}>
-        <div style={{ maxWidth: 1300, margin: "0 auto" }}>
-          <h2 className="section-title" style={{ textAlign: "center", marginBottom: 8, fontFamily: lang === "ko" ? "'Noto Sans KR', sans-serif" : "inherit" }}>{t.home.regionTitle}</h2>
-          <p style={{ textAlign: "center", color: "var(--text-muted)", marginBottom: 40 }}>{lang === "ko" ? "가고 싶은 지역을 선택하고 현지인 추천 스팟을 찾아보세요" : "Choose a region and discover locals' hidden gems"}</p>
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
-            <button className={`pill ${region === "all" ? "active" : ""}`} onClick={() => setRegion("all")} style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>🗺️ {lang === "ko" ? "전체 지역" : "All Regions"}</button>
-            {regions.map((r) => (
-              <button key={r.id} className={`pill ${region === r.id ? "active" : ""}`} onClick={() => setRegion(r.id)} style={{ fontFamily: "'Noto Sans KR', sans-serif" }}>{r.emoji} {r.label[lang as Lang] || r.label.en}</button>
-            ))}
+            <Link href="/trip-planner" className="btn btn-primary" style={{ fontSize: "1rem", padding: "12px 28px" }}>✨ {lang === "ko" ? "AI 일정 만들기" : "Generate My Trip"}</Link>
           </div>
         </div>
-      </section>
-
-      <section className="section">
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 40, overflowX: "auto" }}>
-          {categories.map((c) => (
-            <button key={c.id} className={`pill ${category === c.id ? "active" : ""}`} onClick={() => setCategory(c.id as Category | "all")}>{catLabels[c.labelKey][lang as Lang] || catLabels[c.labelKey].en}</button>
-          ))}
-        </div>
-
-        <div style={{ marginBottom: 24 }}>
-          <h2 className="section-title" style={{ fontFamily: lang === "ko" ? "'Noto Sans KR', sans-serif" : "inherit" }}>{t.home.picksTitle}</h2>
-          <p className="section-subtitle" style={{ fontFamily: lang === "ko" ? "'Noto Sans KR', sans-serif" : "inherit" }}>{t.home.picksSubtitle}</p>
-        </div>
-
-        {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "60px 0", color: "var(--text-muted)" }}>{lang === "ko" ? "해당 조건의 스팟이 없습니다." : "No spots found for this filter."}</div>
-        ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 24 }}>
-            {filtered.map((spot) => <SpotCard key={spot.id} spot={spot} />)}
-          </div>
-        )}
-
-        <div className="glass-card glow" style={{ marginTop: 64, padding: "48px 40px", textAlign: "center", background: "linear-gradient(135deg, rgba(255,95,82,0.08), rgba(255,179,71,0.08))", borderColor: "rgba(255,95,82,0.2)" }}>
-          <h2 style={{ fontSize: "1.8rem", fontWeight: 800, marginBottom: 12, fontFamily: lang === "ko" ? "'Noto Sans KR', sans-serif" : "inherit" }}>
-            {lang === "ko" ? "AI가 나만의 여행 코스를 만들어드립니다 ✨" : "Let AI Build Your Perfect Korean Itinerary ✨"}
-          </h2>
-          <p style={{ color: "var(--text-secondary)", marginBottom: 28, fontFamily: lang === "ko" ? "'Noto Sans KR', sans-serif" : "inherit" }}>
-            {lang === "ko" ? "지역, 숙박 형태, 여행 스타일을 선택하면 현지인 추천 코스를 즉시 생성합니다" : "Select region, accommodation type, and travel style to instantly get a local-approved route"}
-          </p>
-          <Link href="/trip-planner" className="btn-gradient" style={{ display: "inline-flex", padding: "16px 36px", fontSize: "1rem" }}>✈️ {t.nav.planner} <ChevronRight size={18} /></Link>
-        </div>
-      </section>
-    </>
+      </div>
+    </div>
   );
 }

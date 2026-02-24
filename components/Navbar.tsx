@@ -1,32 +1,19 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useI18n, Lang } from "@/lib/i18n";
-import { Sun, Moon, Globe, Menu, X } from "lucide-react";
-import { useEffect } from "react";
-
-const langs: { code: Lang; label: string }[] = [
-  { code: "en", label: "EN" },
-  { code: "ko", label: "한국어" },
-  { code: "ja", label: "日本語" },
-  { code: "zh", label: "中文" },
-];
 
 export default function Navbar() {
-  const { t, lang, setLang } = useI18n();
   const pathname = usePathname();
-  const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [langOpen, setLangOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+  const { lang, setLang, t } = useI18n();
+  const [theme, setTheme] = useState("light");
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem("theme") as "light" | "dark" | null;
-    if (saved) { setTheme(saved); document.documentElement.setAttribute("data-theme", saved); }
-    const handler = () => setScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", handler);
-    return () => window.removeEventListener("scroll", handler);
+    const saved = localStorage.getItem("theme") || "light";
+    setTheme(saved);
+    document.documentElement.setAttribute("data-theme", saved);
   }, []);
 
   const toggleTheme = () => {
@@ -35,6 +22,13 @@ export default function Navbar() {
     localStorage.setItem("theme", next);
     document.documentElement.setAttribute("data-theme", next);
   };
+
+  const langs: { code: Lang; label: string }[] = [
+    { code: "en", label: "EN" },
+    { code: "ko", label: "한" },
+    { code: "ja", label: "日" },
+    { code: "zh", label: "中" },
+  ];
 
   const navLinks = [
     { href: "/", label: t.nav.home },
@@ -45,54 +39,47 @@ export default function Navbar() {
   ];
 
   return (
-    <nav style={{ position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, background: scrolled ? "var(--bg-card)" : "transparent", backdropFilter: scrolled ? "blur(20px)" : "none", borderBottom: scrolled ? "1px solid var(--border)" : "none", transition: "all 0.3s ease", padding: "0 24px" }}>
-      <div style={{ maxWidth: 1300, margin: "0 auto", display: "flex", alignItems: "center", height: 68, gap: 32 }}>
-        <Link href="/" style={{ textDecoration: "none", display: "flex", alignItems: "center", gap: 8, flex: "0 0 auto" }}>
-          <span style={{ fontSize: "1.5rem" }}>🇰🇷</span>
-          <span style={{ fontFamily: "'Noto Sans KR', sans-serif", fontWeight: 900, fontSize: "1.1rem", background: "var(--gradient)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>싰로컈코리아</span>
-        </Link>
+    <nav className="navbar" style={{ justifyContent: "space-between" }}>
+      <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, textDecoration: "none" }}>
+        <span style={{ background: "var(--gradient)", color: "white", fontWeight: 900, fontSize: "0.75rem", padding: "3px 7px", borderRadius: 6, letterSpacing: 0.5 }}>찐</span>
+        <span style={{ color: "var(--nav-text)", fontWeight: 700, fontSize: "0.95rem" }}>Jjin Local <span style={{ opacity: 0.5 }}>🇰🇷</span></span>
+      </Link>
 
-        <div style={{ display: "flex", alignItems: "center", gap: 4, flex: 1 }}>
-          {navLinks.map((l) => (
-            <Link key={l.href} href={l.href} style={{ textDecoration: "none", padding: "6px 14px", borderRadius: 8, fontSize: "0.9rem", fontWeight: pathname === l.href ? 700 : 500, color: pathname === l.href ? "var(--coral)" : "var(--text-secondary)", background: pathname === l.href ? "rgba(255,95,82,0.08)" : "transparent", transition: "all 0.2s" }}>{l.label}</Link>
-          ))}
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-          <div style={{ position: "relative" }}>
-            <button onClick={() => setLangOpen((p) => !p)} className="btn-ghost" style={{ padding: "7px 14px", gap: 6 }} aria-label="Select language">
-              <Globe size={15} />
-              <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>{langs.find((l) => l.code === lang)?.label}</span>
-            </button>
-            {langOpen && (
-              <div className="glass-card" style={{ position: "absolute", right: 0, top: "calc(100% + 8px)", minWidth: 120, padding: 8, zIndex: 200 }}>
-                {langs.map((l) => (
-                  <button key={l.code} onClick={() => { setLang(l.code); setLangOpen(false); }} style={{ display: "block", width: "100%", padding: "8px 14px", textAlign: "left", background: lang === l.code ? "rgba(255,95,82,0.1)" : "transparent", color: lang === l.code ? "var(--coral)" : "var(--text-secondary)", border: "none", cursor: "pointer", borderRadius: 8, fontFamily: "inherit", fontSize: "0.9rem", fontWeight: lang === l.code ? 700 : 400 }}>{l.label}</button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <button onClick={toggleTheme} className="btn-ghost" style={{ padding: "7px 14px", gap: 6 }} aria-label="Toggle theme">
-            {theme === "dark" ? <Sun size={15} /> : <Moon size={15} />}
-            <span style={{ fontSize: "0.85rem", fontWeight: 600 }}>{theme === "dark" ? t.common.lightMode : t.common.darkMode}</span>
-          </button>
-
-          <Link href="/trip-planner" className="btn-gradient" style={{ padding: "9px 20px", fontSize: "0.85rem", textDecoration: "none" }}>✈️ {t.nav.planner}</Link>
-
-          <button onClick={() => setMenuOpen((p) => !p)} className="btn-ghost" style={{ padding: "7px 10px" }}>
-            {menuOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-        </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }} className="desktop-nav">
+        {navLinks.map((link) => (
+          <Link key={link.href} href={link.href} style={{ padding: "6px 12px", borderRadius: 8, fontSize: "0.85rem", fontWeight: 500, color: pathname === link.href ? "var(--coral)" : "var(--nav-text)", textDecoration: "none", opacity: pathname === link.href ? 1 : 0.75, transition: "all 0.15s", background: pathname === link.href ? "rgba(249,115,22,0.1)" : "transparent" }}>
+            {link.label}
+          </Link>
+        ))}
       </div>
 
-      {menuOpen && (
-        <div className="glass-card" style={{ margin: "0 16px 16px", padding: 16, display: "flex", flexDirection: "column", gap: 4 }}>
-          {navLinks.map((l) => (
-            <Link key={l.href} href={l.href} onClick={() => setMenuOpen(false)} style={{ textDecoration: "none", padding: "10px 14px", borderRadius: 8, color: pathname === l.href ? "var(--coral)" : "var(--text-secondary)", fontWeight: pathname === l.href ? 700 : 500 }}>{l.label}</Link>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", background: "rgba(255,255,255,0.07)", borderRadius: 8, padding: 2 }}>
+          {langs.map((l) => (
+            <button key={l.code} onClick={() => setLang(l.code)} style={{ padding: "4px 8px", borderRadius: 6, fontSize: "0.75rem", fontWeight: 600, border: "none", cursor: "pointer", background: lang === l.code ? "var(--coral)" : "transparent", color: lang === l.code ? "white" : "rgba(255,255,255,0.55)", transition: "all 0.15s" }}>
+              {l.label}
+            </button>
+          ))}
+        </div>
+        <button onClick={toggleTheme} style={{ background: "rgba(255,255,255,0.07)", border: "none", borderRadius: 8, padding: "6px 10px", cursor: "pointer", color: "rgba(255,255,255,0.6)", fontSize: "0.9rem" }}>
+          {theme === "dark" ? "☀️" : "🌙"}
+        </button>
+        <Link href="/trip-planner" className="btn btn-primary" style={{ padding: "7px 16px", fontSize: "0.82rem" }}>
+          ✈️ {lang === "ko" ? "여행 계획" : "Plan Trip"}
+        </Link>
+        <button onClick={() => setMobileOpen(!mobileOpen)} style={{ display: "none", background: "none", border: "none", color: "var(--nav-text)", fontSize: "1.2rem", cursor: "pointer" }} className="mobile-burger">☰</button>
+      </div>
+
+      {mobileOpen && (
+        <div style={{ position: "fixed", top: 60, left: 0, right: 0, background: "var(--nav-bg)", borderBottom: "1px solid rgba(255,255,255,0.08)", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 4, zIndex: 99 }}>
+          {navLinks.map((link) => (
+            <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)} style={{ padding: "10px 12px", borderRadius: 8, fontSize: "0.9rem", fontWeight: 500, color: pathname === link.href ? "var(--coral)" : "var(--nav-text)", textDecoration: "none" }}>
+              {link.label}
+            </Link>
           ))}
         </div>
       )}
+      <style>{`@media (max-width: 768px) { .desktop-nav { display: none !important; } .mobile-burger { display: flex !important; } }`}</style>
     </nav>
   );
 }
