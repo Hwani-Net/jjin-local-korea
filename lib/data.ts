@@ -9,10 +9,10 @@ export interface Spot {
   category: Category;
   koreanRating: number;
   touristRating: number;
-  localRating?: number;
+  localRating?: number;  // alias for koreanRating display
   reviewCount: number;
   address: { ko: string; en: string };
-  location?: { ko: string; en: string };
+  location?: { ko: string; en: string }; // short location label
   distance?: string;
   tags: string[];
   description: { ko: string; en: string };
@@ -99,7 +99,7 @@ export const spots: Spot[] = [
     tags: ["#제주해녀", "#활어회", "#로컬픽", "#해산물"],
     description: { ko: "제주 해녀할머니들이 직접 잡은 해산물을 바로 판매. 관광지 식당 절반 가격에 두 배 신선도.", en: "Haenyeo grandmas sell their own catch directly. Half the price of tourist restaurants, twice as fresh." },
     tip: { ko: "오전 8~10시에 가면 갓 잡은 해산물 선택 가능. 현금만 받음!", en: "Go 8–10am to pick from the freshest catch. Cash only!" },
-    image: "https://images.unsplash.com/photo-1604177091072-f77da956c14a?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1596464716127-f2a82984de30?w=800&q=80",
     isHiddenGem: true,
     price: "₩15,000~30,000",
   },
@@ -131,7 +131,7 @@ export const spots: Spot[] = [
     tags: ["#전주비빔밥", "#한옥마을", "#전통음식", "#전주막걸리"],
     description: { ko: "유명 비빔밥 집 말고, 현지인들이 진짜 가는 골목 식당들. 관광지 가격의 절반이면서 더 맛있음.", en: "Skip the famous tourist bibimbap joints. Locals' back-alley restaurants are tastier and half the price." },
     tip: { ko: "한옥마을 뒤쪽 남부시장 청년몰 2층 야시장이 현지인 필수 코스!", en: "The 2nd floor night market at Nambu Market Youth Mall behind the Hanok Village is the locals' must-do!" },
-    image: "https://images.unsplash.com/photo-1617196034183-421b4040ed20?w=800&q=80",
+    image: "https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?w=800&q=80",
     isHiddenGem: true,
     price: "₩8,000~12,000",
   },
@@ -326,6 +326,6 @@ export const regions: {
     emoji: "🍱",
     desc: { ko: "한국 음식 문화의 정수, 비빔밥 원조 도시", en: "The cradle of Korean cuisine and original bibimbap city" },
     tagline: "Food Paradise",
-    image: "https://images.unsplash.com/photo-1583531172078-5ca7f4aca819?w=400&q=70",
+    image: "https://images.unsplash.com/photo-1590559899731-a382839e5549?w=400&q=70",
   },
 ];
